@@ -9,7 +9,12 @@ const {
   GREATER_EQUAL,
   LESS_EQUAL,
   GREATER,
-  LESS
+  LESS,
+  AND,
+  OR,
+  EQUAL_EQUAL,
+  BANG_EQUAL,
+  EQUAL
 } = require('./TokenTypes')
 
 const {
@@ -91,8 +96,47 @@ const parse = tokens => {
 
     return expr
   }
+
+  const equality = () => {
+    let expr = comparison()
+
+    while (match(EQUAL_EQUAL, BANG_EQUAL)) {
+      const operator = previous()
+      const right = comparison()
+
+      expr = createBinary(expr, operator, right)
+    }
+
+    return expr
+  }
+
+  const boolean = () => {
+    let expr = equality()
+
+    while (match(AND, OR)) {
+      const operator = previous()
+      const right = equality()
+
+      expr = createBinary(expr, operator, right)
+    }
+
+    return expr
+  }
+
+  const assignment = () => {
+    let expr = boolean()
+
+    while (match(EQUAL)) {
+      const operator = previous()
+      const right = boolean()
+
+      expr = createBinary(expr, operator, right)
+    }
+
+    return expr
+  }
   
-  const expression = comparison
+  const expression = assignment
 
   return expression()
 }
