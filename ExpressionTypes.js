@@ -1,6 +1,8 @@
-const BINARY  = Symbol.for('binary'),
-      LITERAL = Symbol.for('literal')
+const UNARY   = Symbol.for('unary'),
+      BINARY  = Symbol.for('binary'),
+      LITERAL = Symbol.for('literal'),
+      GROUP   = Symbol.for('group')
 
 module.exports = {
-  BINARY, LITERAL
+  UNARY, BINARY, LITERAL, GROUP
 }

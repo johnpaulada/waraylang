@@ -1,5 +1,8 @@
 const {
   EOF,
+  NIL,
+  TRUE,
+  FALSE,
   NUMBER,
   STAR,
   STAR_STAR,
@@ -11,15 +14,21 @@ const {
   GREATER,
   LESS,
   AND,
+  NOT,
   OR,
   EQUAL_EQUAL,
   BANG_EQUAL,
-  EQUAL
+  EQUAL,
+  STRING,
+  LEFT_PAREN,
+  RIGHT_PAREN
 } = require('./TokenTypes')
 
 const {
+  createUnary,
   createBinary,
-  createLiteral
+  createLiteral,
+  createGroup
 } = require('./ExpressionCreators')
 
 const parse = tokens => {
@@ -42,15 +51,41 @@ const parse = tokens => {
   }
 
   const primary = () => {
-    if (match(NUMBER)) return createLiteral(previous().literal)
+    if (match(TRUE)) return createLiteral(true)
+    if (match(FALSE)) return createLiteral(false)
+    if (match(NIL)) return createLiteral(null)
+    if (match(NUMBER, STRING)) return createLiteral(previous().literal)
+
+    if (match(LEFT_PAREN)) {
+      const expr = expression();
+      if (match(RIGHT_PAREN)) {
+        return createGroup(expr)
+      } else {
+        throw new Error('Expected ")" after expression.')
+      }
+    }
+  }
+
+  const unary = () => {
+    let expr = null
+
+    if (match(MINUS, NOT)) {
+      const operator = previous()
+      const right = primary()
+      expr = createUnary(operator, right)
+    } else {
+      expr = primary()
+    }
+
+    return expr
   }
 
   const exponentiation = () => {
-    let expr = primary()
+    let expr = unary()
 
     while (match(STAR_STAR)) {
       const operator = previous()
-      const right = primary()
+      const right = unary()
 
       expr = createBinary(expr, operator, right)
     }
@@ -137,8 +172,9 @@ const parse = tokens => {
   }
   
   const expression = assignment
+  const program = expression
 
-  return expression()
+  return program()
 }
 
 module.exports = parse

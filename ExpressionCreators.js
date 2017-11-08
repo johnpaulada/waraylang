@@ -1,7 +1,17 @@
 const {
+  UNARY,
   BINARY,
-  LITERAL
+  LITERAL,
+  GROUP
 } = require('./ExpressionTypes')
+
+const createUnary = (operator, right) => {
+  return {
+    type: UNARY,
+    value: operator,
+    right
+  }
+}
 
 const createBinary = (left, operator, right) => {
   return {
@@ -18,7 +28,16 @@ const createLiteral = value => {
   }
 }
 
+const createGroup = value => {
+  return {
+    type: GROUP,
+    value
+  }
+}
+
 module.exports = {
+  createUnary,
   createBinary,
-  createLiteral
+  createLiteral,
+  createGroup
 }

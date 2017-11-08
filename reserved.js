@@ -14,7 +14,8 @@ const {
   RETURN,
   TRUE,
   VAR,
-  WHILE
+  WHILE,
+  END
 } = TokenTypes
 
 module.exports = {
@@ -24,12 +25,13 @@ module.exports = {
   'fun': FUN,
   'for': FOR,
   'kun': IF,
-  'nil': NIL,
+  'waray': NIL,
   'dire': NOT,
   'o': OR,
   'print': PRINT,
   'balik': RETURN,
   'tuod': TRUE,
   'var': VAR,
-  'while': WHILE
+  'while': WHILE,
+  'tapos': END
 }

@@ -26,7 +26,10 @@ const {
   STRING,
   NUMBER,
   IDENTIFIER,
-  EOF
+  NIL,
+  EOF,
+  COLON,
+  END
 } = TokenTypes
 
 const tokenize = source => {
@@ -108,6 +111,7 @@ const tokenize = source => {
             case '.': addToken(DOT); break;
             case '-': addToken(MINUS); break;
             case '+': addToken(PLUS); break;
+            case ':': addToken(COLON); break;
             case ';': addToken(SEMICOLON); break;
             case '*': addToken(match('*') ? STAR_STAR : STAR); break;
             case '!': addToken(match('=') ? BANG_EQUAL : BANG); break;

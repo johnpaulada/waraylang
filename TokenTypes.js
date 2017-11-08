@@ -6,7 +6,7 @@ const TokenTypes = {
   COMMA: Symbol.for(","), DOT: Symbol.for("."),
   MINUS: Symbol.for("-"), PLUS: Symbol.for("+"),
   SLASH: Symbol.for("/"), POUND: Symbol.for("#"),
-  NOT: Symbol.for("not"),
+  NOT: Symbol.for("not"), COLON: Symbol.for(":"),
 
   // One or two character tokens
   BANG: Symbol.for("!"), BANG_EQUAL: Symbol.for("!="),
@@ -19,6 +19,7 @@ const TokenTypes = {
   IDENTIFIER: Symbol.for("identifier"), STRING: Symbol.for("string"), NUMBER: Symbol.for("number"),
 
   // Keywords
+  END: Symbol.for("tapos"),
   AND: Symbol.for("and"),
   ELSE: Symbol.for("else"),
   FALSE : Symbol.for("false"),

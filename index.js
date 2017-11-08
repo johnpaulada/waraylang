@@ -1,4 +1,5 @@
 const tokenize = require('./tokenize')
 const parse = require('./parse')
+const interpret = require('./interpret')
 
-console.log(parse(tokenize('2 + 2 == 2')));
+console.log(interpret(parse(tokenize('"3" * 2'))));
