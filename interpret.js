@@ -34,7 +34,9 @@ const {
   COLON,
   END,
   NOT,
-  SLASH
+  SLASH,
+  AND,
+  OR
 } = require('./TokenTypes')
 
 const binaryOps = {
@@ -79,6 +81,54 @@ const binaryOps = {
     } else {
       throw "Syntax error."
     }
+  },
+  [AND]: (left, right) => {
+    if (typeof left === 'boolean' && typeof right === 'boolean') {
+      return left && right
+    } else {
+      throw "Syntax error."
+    }
+  },
+  [OR]: (left, right) => {
+    if (typeof left === 'boolean' && typeof right === 'boolean') {
+      return left || right
+    } else {
+      throw "Syntax error."
+    }
+  },
+  [EQUAL_EQUAL]: (left, right) => {
+    return left === right
+  },
+  [BANG_EQUAL]: (left, right) => {
+    return left !== right
+  },
+  [LESS]: (left, right) => {
+    if (typeof left === 'number' && typeof right === 'number') {
+      return left < right
+    } else {
+      throw "Syntax error."
+    }
+  },
+  [GREATER]: (left, right) => {
+    if (typeof left === 'number' && typeof right === 'number') {
+      return left > right
+    } else {
+      throw "Syntax error."
+    }
+  },
+  [LESS]: (left, right) => {
+    if (typeof left === 'number' && typeof right === 'number') {
+      return left <= right
+    } else {
+      throw "Syntax error."
+    }
+  },
+  [GREATER_EQUAL]: (left, right) => {
+    if (typeof left === 'number' && typeof right === 'number') {
+      return left >= right
+    } else {
+      throw "Syntax error."
+    }
   }
 }
 
@@ -101,27 +151,41 @@ const unaryOps = {
 
 const visitors = {
   [BINARY]: node => {
-    const left = visitors[node.left.type](node.left)
-    const right = visitors[node.right.type](node.right)
-    if (node.value.type in binaryOps) {
-      return binaryOps[node.value.type](left, right)
-    } else {
+    try {
+      const left = visitors[node.left.type](node.left)
+      const right = visitors[node.right.type](node.right)
+      if (node.value.type in binaryOps) {
+        return binaryOps[node.value.type](left, right)
+      } else {
+        throw `Syntax error at line ${node.value.line}.`
+      }
+    } catch(e) {
       throw `Syntax error at line ${node.value.line}.`
     }
   },
   [UNARY]: node => {
-    const right = visitors[node.right.type](node.right)
-    if (node.value.type in unaryOps) {
-      return unaryOps[node.value.type](right)
-    } else {
+    try {
+      const right = visitors[node.right.type](node.right)
+      if (node.value.type in unaryOps) {
+        return unaryOps[node.value.type](right)
+      } else {
+        throw `Syntax error at line ${node.value.line}.`
+      }
+    } catch(e) {
       throw `Syntax error at line ${node.value.line}.`
     }
+    
   },
-  [LITERAL]: node => node.value
+  [LITERAL]: node => node.value,
+  [GROUP]: node => node.value.value
 }
 
 const interpret = node => {
-  return visitors[node.type](node)
+  try {
+    return visitors[node.type](node)
+  } catch(e) {
+    return e
+  }
 }
 
 module.exports = interpret
