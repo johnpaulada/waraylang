@@ -1,5 +1,7 @@
 const tokenize = require('./tokenize')
 const parse = require('./parse')
 const interpret = require('./interpret')
+const run = program => interpret(parse(tokenize(program)))
 
-console.log(interpret(parse(tokenize('3 !== 3'))));
+run(`1 + 1 tapos
+    yakan "ambot" tapos`)

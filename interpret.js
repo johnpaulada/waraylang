@@ -6,6 +6,11 @@ const {
 } = require('./ExpressionTypes')
 
 const {
+  PRINT_STMT,
+  EXPR_STMT
+} = require('./StatementTypes')
+
+const {
   LEFT_PAREN, 
   RIGHT_PAREN,
   LEFT_BRACE,
@@ -116,7 +121,7 @@ const binaryOps = {
       throw "Syntax error."
     }
   },
-  [LESS]: (left, right) => {
+  [LESS_EQUAL]: (left, right) => {
     if (typeof left === 'number' && typeof right === 'number') {
       return left <= right
     } else {
@@ -149,11 +154,12 @@ const unaryOps = {
   }
 }
 
-const visitors = {
+const expressionVisitors = {
   [BINARY]: node => {
     try {
-      const left = visitors[node.left.type](node.left)
-      const right = visitors[node.right.type](node.right)
+      const left = expressionVisitors[node.left.type](node.left)
+      const right = expressionVisitors[node.right.type](node.right)
+
       if (node.value.type in binaryOps) {
         return binaryOps[node.value.type](left, right)
       } else {
@@ -165,7 +171,7 @@ const visitors = {
   },
   [UNARY]: node => {
     try {
-      const right = visitors[node.right.type](node.right)
+      const right = expressionVisitors[node.right.type](node.right)
       if (node.value.type in unaryOps) {
         return unaryOps[node.value.type](right)
       } else {
@@ -180,11 +186,25 @@ const visitors = {
   [GROUP]: node => node.value.value
 }
 
-const interpret = node => {
+const statementVisitors = {
+  [PRINT_STMT]: statement => {
+    return console.log(expressionVisitors[statement.value.type](statement.value))
+  },
+  [EXPR_STMT]: statement => {
+    return expressionVisitors[statement.value.type](statement.value)
+  }
+}
+
+const interpret = statements => {
   try {
-    return visitors[node.type](node)
+    for (statement of statements) {
+      statementVisitors[statement.type](statement)
+    }
+
+    return 0
   } catch(e) {
-    return e
+    console.log(e)
+    return -1
   }
 }
 

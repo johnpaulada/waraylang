@@ -21,7 +21,9 @@ const {
   EQUAL,
   STRING,
   LEFT_PAREN,
-  RIGHT_PAREN
+  RIGHT_PAREN,
+  END,
+  PRINT
 } = require('./TokenTypes')
 
 const {
@@ -30,6 +32,11 @@ const {
   createLiteral,
   createGroup
 } = require('./ExpressionCreators')
+
+const {
+  createPrint,
+  createExpr
+} = require('./StatementCreators')
 
 const parse = tokens => {
   let start   = 0,
@@ -61,7 +68,7 @@ const parse = tokens => {
       if (match(RIGHT_PAREN)) {
         return createGroup(expr)
       } else {
-        throw new Error('Expected ")" after expression.')
+        throw new Error('May kulang nga ")".')
       }
     }
   }
@@ -172,7 +179,43 @@ const parse = tokens => {
   }
   
   const expression = assignment
-  const program = expression
+
+  const printStatement = () => {
+    const expr = expression()
+
+    if (match(END)) {
+      return createPrint(expr)
+    } else {
+      throw new Error('May kulang nga "tapos".')
+    }
+  }
+
+  const expressionStatement = () => {
+    const expr = expression()
+
+    if (match(END)) {
+      return createExpr(expr)
+    } else {
+      throw new Error('May kulang nga "tapos".')
+    }
+  }
+
+  const statement = () => {
+    if (match(PRINT)) return printStatement()
+
+    return expressionStatement()
+  }
+
+  const program = () => {
+    const statements = []
+
+    while(!isAtEnd()) {
+      statements.push(statement())
+    }
+
+    return statements
+  }
+  
 
   return program()
 }

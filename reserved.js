@@ -28,7 +28,7 @@ module.exports = {
   'waray': NIL,
   'dire': NOT,
   'o': OR,
-  'print': PRINT,
+  'yakan': PRINT,
   'balik': RETURN,
   'tuod': TRUE,
   'var': VAR,
