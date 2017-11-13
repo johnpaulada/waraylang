@@ -96,7 +96,7 @@ const tokenize = source => {
     const identifier = () => {
       while (isAlphaNumeric(peek())) advance();
       const text = source.substring(start, current);
-      addToken(text in reservedWords ? reservedWords[text] : IDENTIFIER);
+      addToken(text in reservedWords ? reservedWords[text] : IDENTIFIER, text);
     }
 
     const scanToken = () => {

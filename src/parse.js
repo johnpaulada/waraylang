@@ -6,6 +6,7 @@ const {
   NUMBER,
   STAR,
   STAR_STAR,
+  CARET,
   SLASH,
   PLUS,
   MINUS,
@@ -23,13 +24,15 @@ const {
   LEFT_PAREN,
   RIGHT_PAREN,
   END,
-  PRINT
+  PRINT,
+  IDENTIFIER
 } = require('./TokenTypes')
 
 const {
   createUnary,
   createBinary,
   createLiteral,
+  createVariable,
   createGroup
 } = require('./ExpressionCreators')
 
@@ -58,6 +61,7 @@ const parse = tokens => {
   }
 
   const primary = () => {
+    if (match(IDENTIFIER)) return createVariable(previous())
     if (match(TRUE)) return createLiteral(true)
     if (match(FALSE)) return createLiteral(false)
     if (match(NIL)) return createLiteral(null)
@@ -90,7 +94,7 @@ const parse = tokens => {
   const exponentiation = () => {
     let expr = unary()
 
-    while (match(STAR_STAR)) {
+    while (match(CARET)) {
       const operator = previous()
       const right = unary()
 
@@ -215,7 +219,6 @@ const parse = tokens => {
 
     return statements
   }
-  
 
   return program()
 }

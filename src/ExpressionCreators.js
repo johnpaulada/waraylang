@@ -2,6 +2,7 @@ const {
   UNARY,
   BINARY,
   LITERAL,
+  VARIABLE,
   GROUP
 } = require('./ExpressionTypes')
 
@@ -35,9 +36,17 @@ const createGroup = value => {
   }
 }
 
+const createVariable = value => {
+  return {
+    type: VARIABLE,
+    value
+  }
+}
+
 module.exports = {
   createUnary,
   createBinary,
   createLiteral,
+  createVariable,
   createGroup
 }

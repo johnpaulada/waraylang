@@ -51,32 +51,32 @@ const binaryOps = {
       (typeof left === 'number' || typeof left === 'string') && 
       (typeof right === 'number' || typeof right === 'string')
     ) {
-      return left + right
+      return `${left} + ${right}`
     } else {
       throw "Syntax error."
     }
   },
   [MINUS]: (left, right) => {
     if (typeof left === 'number' && typeof right === 'number') {
-      return left - right
+      return `${left} - ${right}`
     } else {
       throw "Syntax error."
     }
   },
   [STAR]: (left, right) => {
     if (typeof left === 'number' && typeof right === 'number') {
-      return left * right
+      return `${left} * ${right}`
     } else if (typeof left === 'number' && typeof right === 'string') {
-      return right.repeat(left)
+      return `${right}.repeat(${left})`
     } else if (typeof left === 'string' && typeof right === 'number') {
-      return left.repeat(right)
+      return `${left}.repeat(${right})`
     } else {
       throw "Syntax error."
     }
   },
   [SLASH]: (left, right) => {
     if (typeof left === 'number' && typeof right === 'number') {
-      return left / right
+      return `${left} / ${right}`
     } else {
       throw "Syntax error."
     }
@@ -90,55 +90,55 @@ const binaryOps = {
   },
   [STAR_STAR]: (left, right) => {
     if (typeof left === 'number' && typeof right === 'number') {
-      return Math.pow(left, right)
+      return `Math.pow(${left}, ${right})`
     } else {
       throw "Syntax error."
     }
   },
   [AND]: (left, right) => {
     if (typeof left === 'boolean' && typeof right === 'boolean') {
-      return left && right
+      return `${left} && ${right}`
     } else {
       throw "Syntax error."
     }
   },
   [OR]: (left, right) => {
     if (typeof left === 'boolean' && typeof right === 'boolean') {
-      return left || right
+      return `${left} || ${right}`
     } else {
       throw "Syntax error."
     }
   },
   [EQUAL_EQUAL]: (left, right) => {
-    return left === right
+    return `${left} === ${right}`
   },
   [BANG_EQUAL]: (left, right) => {
-    return left !== right
+    return `${left} !== ${right}`
   },
   [LESS]: (left, right) => {
     if (typeof left === 'number' && typeof right === 'number') {
-      return left < right
+      return `${left} < ${right}`
     } else {
       throw "Syntax error."
     }
   },
   [GREATER]: (left, right) => {
     if (typeof left === 'number' && typeof right === 'number') {
-      return left > right
+      return `${left} > ${right}`
     } else {
       throw "Syntax error."
     }
   },
   [LESS_EQUAL]: (left, right) => {
     if (typeof left === 'number' && typeof right === 'number') {
-      return left <= right
+      return `${left} <= ${right}`
     } else {
       throw "Syntax error."
     }
   },
   [GREATER_EQUAL]: (left, right) => {
     if (typeof left === 'number' && typeof right === 'number') {
-      return left >= right
+      return `${left} >= ${right}`
     } else {
       throw "Syntax error."
     }
@@ -148,23 +148,22 @@ const binaryOps = {
       throw `"${left.literal} is already defined."`
     } else {
       state[left.literal] = right
+      return `const ${left.literal} = ${right}`
     }
-    
-    return right
   }
 }
 
 const unaryOps = {
   [NOT]: value => {
     if (typeof value === 'boolean' || typeof value === 'number') {
-      return !value
+      return `!${value}`
     } else {
       throw "Syntax error."
     }
   },
   [MINUS]: value => {
     if (typeof value === 'number') {
-      return -value
+      return `-${value}`
     } else {
       throw "Syntax error."
     }
@@ -205,13 +204,10 @@ const expressionVisitors = {
 
 const statementVisitors = {
   [PRINT_STMT]: statement => {
-    const result = expressionVisitors[statement.value.type](statement.value)
-    const filteredResult = result === true ? "tuod" : result === false ? "buwa" : result
-
-    return console.log(filteredResult)
+    return `console.log(${expressionVisitors[statement.value.type](statement.value)});`
   },
   [EXPR_STMT]: (statement, state) => {
-    return expressionVisitors[statement.value.type](statement.value, state)
+    return `${expressionVisitors[statement.value.type](statement.value, state)};`
   }
 }
 
@@ -219,16 +215,11 @@ const interpret = statements => {
   const state = {}
 
   try {
-    for (statement of statements) {
-      statementVisitors[statement.type](statement, state)
-    }
-
-    console.log(state)
-
-    return 0
+    return statements.reduce((acc, statement) => `${acc}
+${statementVisitors[statement.type](statement, state)}`, "")
   } catch(e) {
     console.log(e)
-    return -1
+    return ""
   }
 }
 

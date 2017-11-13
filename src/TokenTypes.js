@@ -14,6 +14,7 @@ const TokenTypes = {
   GREATER: Symbol.for(">"), GREATER_EQUAL: Symbol.for(">="),
   LESS: Symbol.for("<"), LESS_EQUAL: Symbol.for("<="),
   STAR: Symbol.for("*"), STAR_STAR: Symbol.for("**"),
+  CARET: Symbol.for("^"),
 
   // Literals
   IDENTIFIER: Symbol.for("identifier"), STRING: Symbol.for("string"), NUMBER: Symbol.for("number"),
