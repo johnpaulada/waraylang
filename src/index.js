@@ -5,5 +5,5 @@ const transpile = require('./transpile')
 const run = program => interpret(parse(tokenize(program)))
 const jsify = program => transpile(parse(tokenize(program)))
 
-console.log(jsify(`tae = 2 tapos
-yakan buwa tapos`))
+run(`tae = 2 tapos
+yakan tae + 2 tapos`)
