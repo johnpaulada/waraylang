@@ -8,7 +8,8 @@ const {
 
 const {
   PRINT_STMT,
-  EXPR_STMT
+  EXPR_STMT,
+  IF_STMT
 } = require('./StatementTypes')
 
 const {
@@ -225,16 +226,29 @@ const expressionVisitors = {
 const statementVisitors = {
   [PRINT_STMT]: (statement, state) => {
     const result = expressionVisitors[statement.value.type](statement.value, state)
-    const filteredResult = result === true ? "tuod" : result === false ? "buwa" : result
+    const filteredResult = result === null ? "waray" : result === true ? "tuod" : result === false ? "buwa" : result
 
     return console.log(filteredResult)
   },
   [EXPR_STMT]: (statement, state) => {
     return expressionVisitors[statement.value.type](statement.value, state)
+  },
+  [IF_STMT]: (statement, state) => {
+    const condition = expressionVisitors[statement.value.type](statement.value, state)
+
+    return condition === true
+      ? statementVisitors[statement.left.type](statement.left, state)
+      : statement.right && statementVisitors[statement.right.type](statement.right, state)
   }
 }
 
-const interpret = statements => {
+const MODE_INTERPRET = Symbol.for('interpret'),
+      MODE_TRANSPILE = Symbol.for('transpile')
+
+const LANG_WARAY = Symbol.for('waray'),
+      LANG_TAGALOG = Symbol.for('tagalog')
+
+const interpret = (mode=MODE_INTERPRET, lang=LANG_WARAY) => statements => {
   const state = {}
 
   try {

@@ -20,7 +20,7 @@ const {
 
 module.exports = {
   'ngan': AND,
-  'else': ELSE,
+  'kundire': ELSE,
   'buwa': FALSE,
   'fun': FUN,
   'for': FOR,

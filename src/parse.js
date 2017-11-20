@@ -25,7 +25,10 @@ const {
   RIGHT_PAREN,
   END,
   PRINT,
-  IDENTIFIER
+  IDENTIFIER,
+  COLON,
+  IF,
+  ELSE
 } = require('./TokenTypes')
 
 const {
@@ -38,7 +41,8 @@ const {
 
 const {
   createPrint,
-  createExpr
+  createExpr,
+  createIf
 } = require('./StatementCreators')
 
 const parse = tokens => {
@@ -185,7 +189,7 @@ const parse = tokens => {
   const expression = assignment
 
   const printStatement = () => {
-    const expr = expression()
+    const expr = statement()
 
     if (match(END)) {
       return createPrint(expr)
@@ -204,8 +208,39 @@ const parse = tokens => {
     }
   }
 
+  const ifStatement = () => {
+    const condition = expression()
+
+    if (!match(COLON)) {
+      throw new Error('May kulang nga ":".')
+    }
+
+    const body = statement()    
+
+    if (match(ELSE)) {
+      if (!match(COLON)) {
+        throw new Error('May kulang nga ":".')
+      }
+      
+      const elseBody = statement()
+      
+      if (!match(END)) {
+        throw new Error('May kulang nga "tapos".') 
+      }
+
+      return createIf(condition, body, elseBody)
+    }
+
+    if (!match(END)) {
+      throw new Error('May kulang nga "tapos".') 
+    }
+
+    return createIf(condition, body)
+  }
+
   const statement = () => {
     if (match(PRINT)) return printStatement()
+    if (match(IF)) return ifStatement()
 
     return expressionStatement()
   }

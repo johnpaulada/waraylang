@@ -1,4 +1,5 @@
 const {
+  IF_STMT,
   PRINT_STMT,
   EXPR_STMT,
 } = require('./StatementTypes')
@@ -17,7 +18,17 @@ const createExpr = value => {
   }
 }
 
+const createIf = (condition, body, elseBody=null) => {
+  return {
+    type: IF_STMT,
+    value: condition,
+    left: body,
+    right: elseBody
+  }
+}
+
 module.exports = {
   createPrint,
-  createExpr
+  createExpr,
+  createIf
 }
