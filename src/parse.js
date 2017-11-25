@@ -28,7 +28,9 @@ const {
   IDENTIFIER,
   COLON,
   IF,
-  ELSE
+  ELSE,
+  FUN,
+  COMMA
 } = require('./TokenTypes')
 
 const {
@@ -36,13 +38,15 @@ const {
   createBinary,
   createLiteral,
   createVariable,
-  createGroup
+  createGroup,
+  createCall
 } = require('./ExpressionCreators')
 
 const {
   createPrint,
   createExpr,
-  createIf
+  createIf,
+  createFn
 } = require('./StatementCreators')
 
 const parse = tokens => {
@@ -64,6 +68,12 @@ const parse = tokens => {
     }
   }
 
+  const consume = (type, message) => {
+    if (check(type)) return eat();
+
+    throw `"${message}" sa may linya: ${peek().line}.`;
+  }
+
   const primary = () => {
     if (match(IDENTIFIER)) return createVariable(previous())
     if (match(TRUE)) return createLiteral(true)
@@ -81,6 +91,35 @@ const parse = tokens => {
     }
   }
 
+  const finishCall = (expr) => {
+    const args = []
+    if (!check(RIGHT_PAREN)) {
+      do {
+        args.push(expression());
+      } while (match(COMMA));
+    }
+
+    if (match(RIGHT_PAREN)) {
+      return new createCall(callee, args);
+    } else {
+      throw new Error("Expect ')' after arguments.")
+    }
+  }
+
+  const call = () => {
+    let expr = primary();
+
+    while (true) {
+      if (match(LEFT_PAREN)) {
+        expr = finishCall(expr);
+      } else {
+        break;
+      }
+    }
+
+    return expr;
+  }
+
   const unary = () => {
     let expr = null
 
@@ -89,7 +128,7 @@ const parse = tokens => {
       const right = primary()
       expr = createUnary(operator, right)
     } else {
-      expr = primary()
+      expr = call()
     }
 
     return expr
@@ -189,23 +228,17 @@ const parse = tokens => {
   const expression = assignment
 
   const printStatement = () => {
-    const expr = statement()
+    const expr = expression()
+    consume(END, 'May kulang nga "tapos".')
 
-    if (match(END)) {
-      return createPrint(expr)
-    } else {
-      throw new Error('May kulang nga "tapos".')
-    }
+    return createPrint(expr)
   }
 
   const expressionStatement = () => {
     const expr = expression()
+    consume(END, 'May kulang nga "tapos".')
 
-    if (match(END)) {
-      return createExpr(expr)
-    } else {
-      throw new Error('May kulang nga "tapos".')
-    }
+    return createExpr(expr)
   }
 
   const ifStatement = () => {
@@ -245,11 +278,45 @@ const parse = tokens => {
     return expressionStatement()
   }
 
+  const bodyStatements = (ender) => {
+    const statements = []
+
+    while (!check(ender) && !isAtEnd()) {
+      statements.push(declaration())
+    }
+
+    consume(ender, 'May kulang nga panapos')
+
+    return statements
+  }
+
+  const functionDeclaration = () => {
+    const functionName = consume(IDENTIFIER, 'Waray ngaran')
+    consume(LEFT_PAREN, `Waray "(" kahuman han ngaran`)
+    const params = []
+    if (!check(RIGHT_PAREN)) {
+      do {
+        params.push(consume(IDENTIFIER, 'May kulang nga ngaran'))
+      } while(match(COMMA))
+    }
+    consume(RIGHT_PAREN, `Waray ")" kahuman han mga ngaran`)
+    consume(COLON, `May kulang nga ":"`)
+    const body = bodyStatements(END)
+
+    return createFn(functionName, params, body)
+  }
+
+  const declaration = () => {
+    if (match(FUN)) return functionDeclaration()
+
+    return statement();
+  }
+
   const program = () => {
     const statements = []
 
     while(!isAtEnd()) {
-      statements.push(statement())
+      statements.push(declaration())
     }
 
     return statements

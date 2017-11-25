@@ -22,7 +22,6 @@ module.exports = {
   'ngan': AND,
   'kundire': ELSE,
   'buwa': FALSE,
-  'fun': FUN,
   'for': FOR,
   'kun': IF,
   'waray': NIL,
@@ -33,5 +32,6 @@ module.exports = {
   'tuod': TRUE,
   'var': VAR,
   'while': WHILE,
-  'tapos': END
+  'tapos': END,
+  'himo': FUN
 }

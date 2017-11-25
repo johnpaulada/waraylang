@@ -3,7 +3,8 @@ const {
   BINARY,
   LITERAL,
   VARIABLE,
-  GROUP
+  GROUP,
+  CALL
 } = require('./ExpressionTypes')
 
 const createUnary = (operator, right) => {
@@ -40,6 +41,14 @@ const createVariable = value => {
   return {
     type: VARIABLE,
     value
+  }
+}
+
+const createCall = (value, args) => {
+  return {
+    type: CALL,
+    value,
+    args
   }
 }
 

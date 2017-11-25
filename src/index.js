@@ -9,14 +9,13 @@ const MODE_INTERPRET = Symbol.for('interpret'),
 const LANG_WARAY   = Symbol.for('waray'),
       LANG_TAGALOG = Symbol.for('tagalog')
 
-const run = program => interpret(MODE_INTERPRET, LANG_WARAY)(parse(tokenize(program)))
+// const run = program => interpret(MODE_INTERPRET, LANG_WARAY)(parse(tokenize(program)))
+const run = program => console.log(JSON.stringify(parse(tokenize(program))))
 // const jsify = program => transpile(parse(tokenize(program)))
 
 run(`
-pisti = 3 tapos
-kun pisti == 4:
-    yakan tuod tapos
-kundire:
-    yakan buwa tapos
+himo tae(a, b, c):
+    yakan "haha" tapos
+    yakan "ano" tapos
 tapos
 `)
