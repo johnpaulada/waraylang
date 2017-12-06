@@ -30,7 +30,14 @@ const {
   IF,
   ELSE,
   FUN,
-  COMMA
+  COMMA,
+  RETURN,
+  PIPE,
+  LEFT_SQUARE,
+  RIGHT_SQUARE,
+  MAP,
+  REDUCE,
+  FILTER
 } = require('./TokenTypes')
 
 const {
@@ -39,14 +46,16 @@ const {
   createLiteral,
   createVariable,
   createGroup,
-  createCall
+  createCall,
+  createList
 } = require('./ExpressionCreators')
 
 const {
   createPrint,
   createExpr,
   createIf,
-  createFn
+  createFn,
+  createReturn
 } = require('./StatementCreators')
 
 const parse = tokens => {
@@ -89,6 +98,18 @@ const parse = tokens => {
         throw new Error('May kulang nga ")".')
       }
     }
+
+    if (match(LEFT_SQUARE)) {
+      const contents = []
+      if (!check(RIGHT_SQUARE)) {
+        do {
+          contents.push(expression())
+        } while(match(COMMA))
+      }
+      consume(RIGHT_SQUARE, `May kulang nga "]"`)
+
+      return createList(contents)
+    }
   }
 
   const finishCall = (expr) => {
@@ -100,7 +121,7 @@ const parse = tokens => {
     }
 
     if (match(RIGHT_PAREN)) {
-      return new createCall(callee, args);
+      return createCall(expr, args);
     } else {
       throw new Error("Expect ')' after arguments.")
     }
@@ -212,12 +233,64 @@ const parse = tokens => {
     return expr
   }
 
-  const assignment = () => {
+  const piping = () => {
     let expr = boolean()
+
+    while (match(PIPE)) {
+      const operator = previous()
+      const right = boolean()
+
+      expr = createBinary(expr, operator, right)
+    }
+
+    return expr
+  }
+
+  const reduce = () => {
+    let expr = piping()
+
+    while (match(REDUCE)) {
+      const operator = previous()
+      const right = piping()
+
+      expr = createBinary(expr, operator, right)
+    }
+
+    return expr
+  }
+
+  const filter = () => {
+    let expr = reduce()
+
+    while (match(FILTER)) {
+      const operator = previous()
+      const right = reduce()
+
+      expr = createBinary(expr, operator, right)
+    }
+
+    return expr
+  }
+
+  const map = () => {
+    let expr = filter()
+
+    while (match(MAP)) {
+      const operator = previous()
+      const right = filter()
+
+      expr = createBinary(expr, operator, right)
+    }
+
+    return expr
+  }
+
+  const assignment = () => {
+    let expr = map()
 
     while (match(EQUAL)) {
       const operator = previous()
-      const right = boolean()
+      const right = map()
 
       expr = createBinary(expr, operator, right)
     }
@@ -234,6 +307,13 @@ const parse = tokens => {
     return createPrint(expr)
   }
 
+  const returnStatement = () => {
+    const expr = expression()
+    consume(END, 'May kulang nga "tapos".')
+
+    return createReturn(expr)
+  }
+
   const expressionStatement = () => {
     const expr = expression()
     consume(END, 'May kulang nga "tapos".')
@@ -248,7 +328,7 @@ const parse = tokens => {
       throw new Error('May kulang nga ":".')
     }
 
-    const body = statement()    
+    const body = bodyStatements(END)    
 
     if (match(ELSE)) {
       if (!match(COLON)) {
@@ -273,6 +353,7 @@ const parse = tokens => {
 
   const statement = () => {
     if (match(PRINT)) return printStatement()
+    if (match(RETURN)) return returnStatement()
     if (match(IF)) return ifStatement()
 
     return expressionStatement()

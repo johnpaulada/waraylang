@@ -5,6 +5,8 @@ const reservedWords = require('./reserved')
 const {
   LEFT_PAREN, 
   RIGHT_PAREN,
+  LEFT_SQUARE, 
+  RIGHT_SQUARE,
   LEFT_BRACE,
   RIGHT_BRACE,
   COMMA,
@@ -29,7 +31,12 @@ const {
   NIL,
   EOF,
   COLON,
-  END
+  END,
+  PIPE,
+  MAP,
+  REDUCE,
+  FILTER,
+  CARET
 } = TokenTypes
 
 const tokenize = source => {
@@ -89,7 +96,6 @@ const tokenize = source => {
         while (isDigit(peek())) advance();
       }
   
-      // TODO: Check for parseDouble
       addToken(NUMBER, parseFloat(source.substring(start, current)));
     }
 
@@ -99,25 +105,43 @@ const tokenize = source => {
       addToken(text in reservedWords ? reservedWords[text] : IDENTIFIER, text);
     }
 
+    const doEqual = () => {
+      const nextToEqual = peek()
+      match(nextToEqual)
+
+      return nextToEqual === '=' ? GREATER_EQUAL : nextToEqual === '>' ? MAP : EQUAL
+    }
+
+    const doGreater = () => {
+      const nextToEqual = peek()
+      match(nextToEqual)
+
+      return nextToEqual === '=' ? EQUAL_EQUAL : nextToEqual === '>' ? REDUCE : GREATER
+    }
+
     const scanToken = () => {
         const c = advance()
 
         switch (c) {
             case '(': addToken(LEFT_PAREN); break;
             case ')': addToken(RIGHT_PAREN); break;
+            case '[': addToken(LEFT_SQUARE); break;
+            case ']': addToken(RIGHT_SQUARE); break;
             case '{': addToken(LEFT_BRACE); break;
             case '}': addToken(RIGHT_BRACE); break;
             case ',': addToken(COMMA); break;
             case '.': addToken(DOT); break;
-            case '-': addToken(MINUS); break;
+            case '-': addToken(match('>') ? FILTER : MINUS); break;
             case '+': addToken(PLUS); break;
             case ':': addToken(COLON); break;
             case ';': addToken(SEMICOLON); break;
+            case '^': addToken(CARET); break;
             case '*': addToken(match('*') ? STAR_STAR : STAR); break;
             case '!': addToken(match('=') ? BANG_EQUAL : BANG); break;
-            case '=': addToken(match('=') ? EQUAL_EQUAL : EQUAL); break;
+            case '=': addToken(doEqual()); break;
             case '<': addToken(match('=') ? LESS_EQUAL : LESS); break;
-            case '>': addToken(match('=') ? GREATER_EQUAL : GREATER); break;
+            case '>': addToken(doGreater()); break;
+            case '|': if (match('>')) addToken(PIPE); break;
             case '#': while (peek() != '\n' && !isAtEnd()) advance(); break;
             case ' ': case '\r': case '\t': break;
             case '\n': line++; break;

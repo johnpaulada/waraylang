@@ -4,7 +4,8 @@ const {
   LITERAL,
   VARIABLE,
   GROUP,
-  CALL
+  CALL,
+  LIST
 } = require('./ExpressionTypes')
 
 const createUnary = (operator, right) => {
@@ -52,10 +53,19 @@ const createCall = (value, args) => {
   }
 }
 
+const createList = (value) => {
+  return {
+    type: LIST,
+    value
+  }
+}
+
 module.exports = {
   createUnary,
   createBinary,
   createLiteral,
   createVariable,
-  createGroup
+  createGroup,
+  createCall,
+  createList
 }

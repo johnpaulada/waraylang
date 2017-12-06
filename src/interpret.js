@@ -3,13 +3,17 @@ const {
   BINARY,
   LITERAL,
   VARIABLE,
-  GROUP
+  GROUP,
+  CALL,
+  LIST
 } = require('./ExpressionTypes')
 
 const {
   PRINT_STMT,
   EXPR_STMT,
-  IF_STMT
+  IF_STMT,
+  FN_STMT,
+  RETURN_STMT
 } = require('./StatementTypes')
 
 const {
@@ -44,10 +48,16 @@ const {
   NOT,
   SLASH,
   AND,
-  OR
+  OR,
+  PIPE,
+  MAP,
+  REDUCE,
+  FILTER
 } = require('./TokenTypes')
 
 const isIdentifier      = value => typeof value === 'object' && 'type' in value && value.type == IDENTIFIER
+const isCallable        = value => typeof value === 'object' && 'call' in value
+const isList            = value => typeof value === 'object' && 'type' in value && value.type == LIST
 const getValue          = (state, value) => isIdentifier(value) ? state[value.literal] : value
 const createTypeChecker = type => (value) => typeof value === type
 const isNumber          = createTypeChecker('number')
@@ -59,6 +69,34 @@ const allPairs          = (pairs) => pairs.every(pair => pair[1](pair[0]))
 const somePairs         = (pairs) => pairs.some(pair => pair[1](pair[0]))
 
 const binaryOps = {
+  [PIPE]: (left, right, state) => {
+    if (isCallable(right)) {
+      return right.call([left])
+    } else {
+      throw "Sayop nga pag-gamit."
+    }
+  },
+  [MAP]: (left, right, state) => {
+    if (isList(left) && isCallable(right)) {
+      return left.value.map((x, i, a) => right.call([x, i, a]))
+    } else {
+      throw "Sayop nga pag-gamit."
+    }
+  },
+  [REDUCE]: (left, right, state) => {
+    if (isList(left) && isCallable(right)) {
+      return left.value.reduce((acc, x, i, a) => right.call([acc, x, i, a]))
+    } else {
+      throw "Sayop nga pag-gamit."
+    }
+  },
+  [FILTER]: (left, right, state) => {
+    if (isList(left) && isCallable(right)) {
+      return left.value.filter((x, i, a) => right.call([x, i, a]))
+    } else {
+      throw "Sayop nga pag-gamit."
+    }
+  },
   [PLUS]: (left, right, state) => {
     if (eitherType(left, isNumber, isString) && eitherType(right, isNumber, isString)) {
       return left + right
@@ -106,8 +144,6 @@ const binaryOps = {
     }
   },
   [AND]: (left, right) => {
-    const v = createValueGetter(state)
-
     if (ofType(isBoolean, left, right)) {
       return left && right
     } else {
@@ -218,6 +254,20 @@ const expressionVisitors = {
     }
     
   },
+  [CALL]: (node, state) => {
+    const functionName = node.value.value.literal
+    
+    if (!(functionName in state)) throw `Waray butang nga an ngaran "${functionName}"`
+    if (!(typeof state[functionName] === 'object') || !("call" in state[functionName])) throw `Diri hirimuon it "${functionName}"`
+
+    const functionValue = state[functionName].call(node.args)
+
+    return functionValue
+  },
+  [LIST]: (node, state) => {
+    const contents = node.value.map(content => expressionVisitors[content.type](content))
+    return {type: LIST, value: contents}
+  },
   [VARIABLE]: node => node.value,
   [LITERAL]: node => node.value,
   [GROUP]: node => node.value.value
@@ -226,9 +276,9 @@ const expressionVisitors = {
 const statementVisitors = {
   [PRINT_STMT]: (statement, state) => {
     const result = expressionVisitors[statement.value.type](statement.value, state)
-    const filteredResult = result === null ? "waray" : result === true ? "tuod" : result === false ? "buwa" : result
-
-    return console.log(filteredResult)
+    const evaluatedResult = isIdentifier(result) && result.literal in state ? state[result.literal] : isIdentifier(result) ? undefined : result
+    const filteredResult = evaluatedResult === null || evaluatedResult === undefined ? "waray" : evaluatedResult === true ? "tuod" : evaluatedResult === false ? "buwa" : evaluatedResult
+    console.log(filteredResult)
   },
   [EXPR_STMT]: (statement, state) => {
     return expressionVisitors[statement.value.type](statement.value, state)
@@ -239,13 +289,60 @@ const statementVisitors = {
     return condition === true
       ? statementVisitors[statement.left.type](statement.left, state)
       : statement.right && statementVisitors[statement.right.type](statement.right, state)
+  },
+  [FN_STMT]: (statement, state) => {
+    createCallable(statement, state)
+  },
+  [RETURN_STMT]: (statement, state) => {
+    const result = expressionVisitors[statement.value.type](statement.value, state)
+    const evaluatedValue = isIdentifier(result) && result.literal in state ? state[result.literal] : isIdentifier(result) ? undefined : result
+    const filteredResult = evaluatedValue === null || evaluatedValue === undefined ? "waray" : evaluatedValue === true ? "tuod" : evaluatedValue === false ? "buwa" : evaluatedValue
+
+    return filteredResult
   }
+}
+
+const createCallable = (statement, state) => {
+  if (statement.value.literal in state) {
+    throw `Mayda na hirimuon nga "${statement.value.literal}"`
+  }
+
+  state[statement.value.literal] = {
+    call: (args) => {
+      const evaluatedArgs = args.reduce((acc, arg) => {
+        if (typeof arg !== 'object') {
+          return [...acc, arg]
+        } else if ('type' in arg) {
+          return [...acc, expressionVisitors[arg.type](arg, state)]
+        } else {
+          return acc
+        }
+      }, [])
+
+      
+      const fnState = evaluatedArgs.reduce((acc, arg, index) => {
+        if (!(index in statement.params)) return acc
+        return Object.assign({}, acc, {[statement.params[index].literal]: arg})
+      }, {})
+
+      return statement.body.reduce((acc, st) => {
+        if (acc === undefined || acc === null) {
+          const result = statementVisitors[st.type](st, fnState)
+          return st.type == RETURN_STMT ? result : acc
+        } else {
+          return acc
+        }        
+      }, null)
+    }
+  }
+
+  return state[statement.value.literal]
 }
 
 const MODE_INTERPRET = Symbol.for('interpret'),
       MODE_TRANSPILE = Symbol.for('transpile')
 
-const LANG_WARAY = Symbol.for('waray'),
+const LANG_WARAY   = Symbol.for('waray'),
       LANG_TAGALOG = Symbol.for('tagalog')
 
 const interpret = (mode=MODE_INTERPRET, lang=LANG_WARAY) => statements => {

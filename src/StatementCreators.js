@@ -2,7 +2,8 @@ const {
   IF_STMT,
   PRINT_STMT,
   EXPR_STMT,
-  FN_STMT
+  FN_STMT,
+  RETURN_STMT
 } = require('./StatementTypes')
 
 const createPrint = value => {
@@ -15,6 +16,13 @@ const createPrint = value => {
 const createExpr = value => {
   return {
     type: EXPR_STMT,
+    value
+  }
+}
+
+const createReturn = value => {
+  return {
+    type: RETURN_STMT,
     value
   }
 }
@@ -41,5 +49,6 @@ module.exports = {
   createPrint,
   createExpr,
   createIf,
-  createFn
+  createFn,
+  createReturn
 }
