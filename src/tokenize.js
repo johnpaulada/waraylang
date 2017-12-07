@@ -36,7 +36,8 @@ const {
   MAP,
   REDUCE,
   FILTER,
-  CARET
+  CARET,
+  MODULO
 } = TokenTypes
 
 const tokenize = source => {
@@ -109,14 +110,14 @@ const tokenize = source => {
       const nextToEqual = peek()
       match(nextToEqual)
 
-      return nextToEqual === '=' ? GREATER_EQUAL : nextToEqual === '>' ? MAP : EQUAL
+      return nextToEqual === '=' ? EQUAL_EQUAL : nextToEqual === '>' ? MAP : EQUAL
     }
 
     const doGreater = () => {
       const nextToEqual = peek()
       match(nextToEqual)
 
-      return nextToEqual === '=' ? EQUAL_EQUAL : nextToEqual === '>' ? REDUCE : GREATER
+      return nextToEqual === '=' ? GREATER_EQUAL : nextToEqual === '>' ? REDUCE : GREATER
     }
 
     const scanToken = () => {
@@ -131,6 +132,7 @@ const tokenize = source => {
             case '}': addToken(RIGHT_BRACE); break;
             case ',': addToken(COMMA); break;
             case '.': addToken(DOT); break;
+            case '%': addToken(MODULO); break;
             case '-': addToken(match('>') ? FILTER : MINUS); break;
             case '+': addToken(PLUS); break;
             case ':': addToken(COLON); break;

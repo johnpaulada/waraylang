@@ -17,7 +17,7 @@ const TokenTypes = {
   STAR: Symbol.for("*"), STAR_STAR: Symbol.for("**"),
   CARET: Symbol.for("^"), PIPE: Symbol.for("|>"),
   MAP: Symbol.for("=>"), REDUCE: Symbol.for(">>"),
-  FILTER: Symbol.for("->"),
+  FILTER: Symbol.for("->"), MODULO: Symbol.for("%"),
 
   // Literals
   IDENTIFIER: Symbol.for("identifier"), STRING: Symbol.for("string"), NUMBER: Symbol.for("number"),

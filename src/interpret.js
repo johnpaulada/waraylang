@@ -9,6 +9,10 @@ const {
 } = require('./ExpressionTypes')
 
 const {
+  createList
+} = require('./ExpressionCreators')
+
+const {
   PRINT_STMT,
   EXPR_STMT,
   IF_STMT,
@@ -52,10 +56,11 @@ const {
   PIPE,
   MAP,
   REDUCE,
-  FILTER
+  FILTER,
+  MODULO
 } = require('./TokenTypes')
 
-const isIdentifier      = value => typeof value === 'object' && 'type' in value && value.type == IDENTIFIER
+const isIdentifier      = value => value !== null && typeof value === 'object' && 'type' in value && value.type == IDENTIFIER
 const isCallable        = value => typeof value === 'object' && 'call' in value
 const isList            = value => typeof value === 'object' && 'type' in value && value.type == LIST
 const getValue          = (state, value) => isIdentifier(value) ? state[value.literal] : value
@@ -78,7 +83,7 @@ const binaryOps = {
   },
   [MAP]: (left, right, state) => {
     if (isList(left) && isCallable(right)) {
-      return left.value.map((x, i, a) => right.call([x, i, a]))
+      return createList(left.value.map((x, i, a) => right.call([x, i, a])))
     } else {
       throw "Sayop nga pag-gamit."
     }
@@ -92,7 +97,7 @@ const binaryOps = {
   },
   [FILTER]: (left, right, state) => {
     if (isList(left) && isCallable(right)) {
-      return left.value.filter((x, i, a) => right.call([x, i, a]))
+      return createList(left.value.filter((x, i, a) => right.call([x, i, a]) === "tuod" ))
     } else {
       throw "Sayop nga pag-gamit."
     }
@@ -127,6 +132,13 @@ const binaryOps = {
       return left / right
     } else {
       throw "Sayop nga pag divide."
+    }
+  },
+  [MODULO]: (left, right, state) => {
+    if (ofType(isNumber, left, right)) {
+      return left % right
+    } else {
+      throw "Sayop nga pag modulo."
     }
   },
   [STAR_STAR]: (left, right, state) => {
@@ -256,11 +268,10 @@ const expressionVisitors = {
   },
   [CALL]: (node, state) => {
     const functionName = node.value.value.literal
-    
+
     if (!(functionName in state)) throw `Waray butang nga an ngaran "${functionName}"`
     if (!(typeof state[functionName] === 'object') || !("call" in state[functionName])) throw `Diri hirimuon it "${functionName}"`
-
-    const functionValue = state[functionName].call(node.args)
+    const functionValue = state[functionName].call(node.args, state)
 
     return functionValue
   },
@@ -270,15 +281,18 @@ const expressionVisitors = {
   },
   [VARIABLE]: node => node.value,
   [LITERAL]: node => node.value,
-  [GROUP]: node => node.value.value
+  [GROUP]: (node, state) => expressionVisitors[node.value.type](node.value, state)
 }
 
 const statementVisitors = {
   [PRINT_STMT]: (statement, state) => {
+    // TODO: Create filters for type simplification e.g. {type: LIST, value} to "value"
     const result = expressionVisitors[statement.value.type](statement.value, state)
     const evaluatedResult = isIdentifier(result) && result.literal in state ? state[result.literal] : isIdentifier(result) ? undefined : result
     const filteredResult = evaluatedResult === null || evaluatedResult === undefined ? "waray" : evaluatedResult === true ? "tuod" : evaluatedResult === false ? "buwa" : evaluatedResult
-    console.log(filteredResult)
+    const convertedResult = isList(filteredResult) ? filteredResult.value : filteredResult
+
+    console.log(convertedResult)
   },
   [EXPR_STMT]: (statement, state) => {
     return expressionVisitors[statement.value.type](statement.value, state)
@@ -287,8 +301,14 @@ const statementVisitors = {
     const condition = expressionVisitors[statement.value.type](statement.value, state)
 
     return condition === true
-      ? statementVisitors[statement.left.type](statement.left, state)
-      : statement.right && statementVisitors[statement.right.type](statement.right, state)
+      ? statement.left.reduce((acc, val) => {
+        const result = statementVisitors[val.type](val, state)
+        if (val.type == RETURN_STMT) return val
+      }, null)
+      : statement.right && statement.right.reduce((acc, val) => {
+        const result = statementVisitors[val.type](val, state)
+        if (val.type == RETURN_STMT) return val
+      }, null)
   },
   [FN_STMT]: (statement, state) => {
     createCallable(statement, state)
@@ -307,33 +327,36 @@ const createCallable = (statement, state) => {
     throw `Mayda na hirimuon nga "${statement.value.literal}"`
   }
 
+  const fnCall = (args, stt) => {
+    const evaluatedArgs = args.reduce((acc, arg) => {
+      if (typeof arg !== 'object') {
+        return [...acc, arg]
+      } else if ('type' in arg) {
+        return [...acc, expressionVisitors[arg.type](arg, stt)]
+      } else {
+        return acc
+      }
+    }, [])
+    
+    const argState = evaluatedArgs.reduce((acc, arg, index) => {
+      if (!(index in statement.params)) return acc
+      return Object.assign({}, acc, {[statement.params[index].literal]: arg})
+    }, {})
+
+    const fnState = Object.assign({}, stt, argState)
+
+    return statement.body.reduce((acc, st) => {
+      if (acc === undefined || acc === null) {
+        const result = statementVisitors[st.type](st, fnState)
+        return st.type == RETURN_STMT ? result : typeof result !== 'undefined' && result !== null && result.type == RETURN_STMT ? statementVisitors[result.type](result, fnState) : acc
+      } else {
+        return acc
+      }        
+    }, null)
+  }
+
   state[statement.value.literal] = {
-    call: (args) => {
-      const evaluatedArgs = args.reduce((acc, arg) => {
-        if (typeof arg !== 'object') {
-          return [...acc, arg]
-        } else if ('type' in arg) {
-          return [...acc, expressionVisitors[arg.type](arg, state)]
-        } else {
-          return acc
-        }
-      }, [])
-
-      
-      const fnState = evaluatedArgs.reduce((acc, arg, index) => {
-        if (!(index in statement.params)) return acc
-        return Object.assign({}, acc, {[statement.params[index].literal]: arg})
-      }, {})
-
-      return statement.body.reduce((acc, st) => {
-        if (acc === undefined || acc === null) {
-          const result = statementVisitors[st.type](st, fnState)
-          return st.type == RETURN_STMT ? result : acc
-        } else {
-          return acc
-        }        
-      }, null)
-    }
+    call: fnCall
   }
 
   return state[statement.value.literal]

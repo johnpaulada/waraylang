@@ -37,7 +37,8 @@ const {
   RIGHT_SQUARE,
   MAP,
   REDUCE,
-  FILTER
+  FILTER,
+  MODULO
 } = require('./TokenTypes')
 
 const {
@@ -171,7 +172,7 @@ const parse = tokens => {
   const multiplication = () => {
     let expr = exponentiation()
 
-    while (match(STAR, SLASH)) {
+    while (match(STAR, SLASH, MODULO)) {
       const operator = previous()
       const right = exponentiation()
 
@@ -236,7 +237,7 @@ const parse = tokens => {
   const piping = () => {
     let expr = boolean()
 
-    while (match(PIPE)) {
+    while (match(REDUCE, MAP, FILTER, PIPE)) {
       const operator = previous()
       const right = boolean()
 
@@ -246,51 +247,12 @@ const parse = tokens => {
     return expr
   }
 
-  const reduce = () => {
-    let expr = piping()
-
-    while (match(REDUCE)) {
-      const operator = previous()
-      const right = piping()
-
-      expr = createBinary(expr, operator, right)
-    }
-
-    return expr
-  }
-
-  const filter = () => {
-    let expr = reduce()
-
-    while (match(FILTER)) {
-      const operator = previous()
-      const right = reduce()
-
-      expr = createBinary(expr, operator, right)
-    }
-
-    return expr
-  }
-
-  const map = () => {
-    let expr = filter()
-
-    while (match(MAP)) {
-      const operator = previous()
-      const right = filter()
-
-      expr = createBinary(expr, operator, right)
-    }
-
-    return expr
-  }
-
   const assignment = () => {
-    let expr = map()
+    let expr = piping()
 
     while (match(EQUAL)) {
       const operator = previous()
-      const right = map()
+      const right = piping()
 
       expr = createBinary(expr, operator, right)
     }
@@ -323,29 +285,15 @@ const parse = tokens => {
 
   const ifStatement = () => {
     const condition = expression()
-
-    if (!match(COLON)) {
-      throw new Error('May kulang nga ":".')
-    }
+    consume(COLON, 'May kulang nga ":"')
 
     const body = bodyStatements(END)    
 
     if (match(ELSE)) {
-      if (!match(COLON)) {
-        throw new Error('May kulang nga ":".')
-      }
-      
-      const elseBody = statement()
-      
-      if (!match(END)) {
-        throw new Error('May kulang nga "tapos".') 
-      }
+      consume(COLON, 'May kulang nga ":"')
+      const elseBody = bodyStatements(END)
 
       return createIf(condition, body, elseBody)
-    }
-
-    if (!match(END)) {
-      throw new Error('May kulang nga "tapos".') 
     }
 
     return createIf(condition, body)
@@ -366,7 +314,7 @@ const parse = tokens => {
       statements.push(declaration())
     }
 
-    consume(ender, 'May kulang nga panapos')
+    if (typeof ender !== 'undefined') consume(ender, 'May kulang nga panapos')
 
     return statements
   }
