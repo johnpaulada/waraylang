@@ -10,7 +10,3 @@ const LANG_WARAY   = Symbol.for('waray'),
       LANG_TAGALOG = Symbol.for('tagalog')
 
 const run = program => interpret(MODE_INTERPRET, LANG_WARAY)(parse(tokenize(program)))
-
-export {
-  run
-}
