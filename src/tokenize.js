@@ -37,7 +37,8 @@ const {
   REDUCE,
   FILTER,
   CARET,
-  MODULO
+  MODULO,
+  PLUS_PLUS
 } = TokenTypes
 
 const tokenize = source => {
@@ -134,7 +135,7 @@ const tokenize = source => {
             case '.': addToken(DOT); break;
             case '%': addToken(MODULO); break;
             case '-': addToken(match('>') ? FILTER : MINUS); break;
-            case '+': addToken(PLUS); break;
+            case '+': addToken(match('+') ? PLUS_PLUS : PLUS); break;
             case ':': addToken(COLON); break;
             case ';': addToken(SEMICOLON); break;
             case '^': addToken(CARET); break;

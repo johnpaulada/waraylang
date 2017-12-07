@@ -38,7 +38,8 @@ const {
   MAP,
   REDUCE,
   FILTER,
-  MODULO
+  MODULO,
+  PLUS_PLUS
 } = require('./TokenTypes')
 
 const {
@@ -234,12 +235,25 @@ const parse = tokens => {
     return expr
   }
 
-  const piping = () => {
+  const concat = () => {
     let expr = boolean()
+
+    while (match(PLUS_PLUS)) {
+      const operator = previous()
+      const right = boolean()
+
+      expr = createBinary(expr, operator, right)
+    }
+
+    return expr
+  }
+
+  const piping = () => {
+    let expr = concat()
 
     while (match(REDUCE, MAP, FILTER, PIPE)) {
       const operator = previous()
-      const right = boolean()
+      const right = concat()
 
       expr = createBinary(expr, operator, right)
     }

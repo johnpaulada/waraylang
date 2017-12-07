@@ -57,7 +57,8 @@ const {
   MAP,
   REDUCE,
   FILTER,
-  MODULO
+  MODULO,
+  PLUS_PLUS
 } = require('./TokenTypes')
 
 const isIdentifier      = value => value !== null && typeof value === 'object' && 'type' in value && value.type == IDENTIFIER
@@ -105,6 +106,17 @@ const binaryOps = {
   [PLUS]: (left, right, state) => {
     if (eitherType(left, isNumber, isString) && eitherType(right, isNumber, isString)) {
       return left + right
+    } else if (ofType(isList, left, right)) {
+      return createList(left.value.concat(right.value))
+    } else if (allPairs([[left, isList], [right, isString]])) {
+      
+    } else {
+      throw "Sayop nga pag-dugang."
+    }
+  },
+  [PLUS_PLUS]: (left, right, state) => {
+    if (ofType(isList, left, right)) {
+      return createList(left.value.concat(right.value))
     } else {
       throw "Sayop nga pag-dugang."
     }
@@ -276,7 +288,12 @@ const expressionVisitors = {
     return functionValue
   },
   [LIST]: (node, state) => {
-    const contents = node.value.map(content => expressionVisitors[content.type](content))
+    const contents = node.value.map(content => {
+      const result = expressionVisitors[content.type](content, state)
+      if (isIdentifier(result)) return state[result.literal]
+
+      return result
+    })
     return {type: LIST, value: contents}
   },
   [VARIABLE]: node => node.value,

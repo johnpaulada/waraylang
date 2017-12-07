@@ -8,6 +8,7 @@ const TokenTypes = {
   MINUS: Symbol.for("-"), PLUS: Symbol.for("+"),
   SLASH: Symbol.for("/"), POUND: Symbol.for("#"),
   NOT: Symbol.for("not"), COLON: Symbol.for(":"),
+  MODULO: Symbol.for("%"),
 
   // One or two character tokens
   BANG: Symbol.for("!"), BANG_EQUAL: Symbol.for("!="),
@@ -17,7 +18,7 @@ const TokenTypes = {
   STAR: Symbol.for("*"), STAR_STAR: Symbol.for("**"),
   CARET: Symbol.for("^"), PIPE: Symbol.for("|>"),
   MAP: Symbol.for("=>"), REDUCE: Symbol.for(">>"),
-  FILTER: Symbol.for("->"), MODULO: Symbol.for("%"),
+  FILTER: Symbol.for("->"), PLUS_PLUS: Symbol.for("++"),
 
   // Literals
   IDENTIFIER: Symbol.for("identifier"), STRING: Symbol.for("string"), NUMBER: Symbol.for("number"),
