@@ -21,7 +21,7 @@ const {
 } = require('./StatementTypes')
 
 const {
-  LEFT_PAREN, 
+  LEFT_PAREN,
   RIGHT_PAREN,
   LEFT_BRACE,
   RIGHT_BRACE,
@@ -61,10 +61,91 @@ const {
   PLUS_PLUS
 } = require('./TokenTypes')
 
+const MODE_INTERPRET = Symbol.for('interpret'),
+      MODE_TRANSPILE = Symbol.for('transpile')
+
+const LANG_WARAY   = Symbol.for('waray'),
+      LANG_TAGALOG = Symbol.for('tagalog')
+
+var interpretConfig = {
+  mode: null,
+  lang: null
+}
+
+const padWithQuotes = literal => typeof literal === 'string' ? `"${literal}"` : literal
+
+const createTranspileDS = (op, value) => ({op, value})
+
+const expressionReducers = {
+  [MODE_INTERPRET]: {
+    'literal': node => node.value
+  },
+  [MODE_TRANSPILE]: {
+    'literal': node => {
+      if (typeof node.value === 'string') return `"${node.value}"`
+
+      return node.value
+    }
+  }
+}
+
+const binaryReducers = {
+  [MODE_INTERPRET]: {
+    'plus': [
+      (left, right) => left + right
+    ],
+    'minus': [
+      (left, right) => left - right
+    ],
+    'star': [
+      (left, right) => left * right,
+      (left, right) => right.repeat(left),
+      (left, right) => left.repeat(right)
+    ],
+    'plus_plus': [
+      (left, right) => createList(left.value.concat(right.value))
+    ]
+  },
+  [MODE_TRANSPILE]: {
+    'plus': [
+      (left, right) => createTranspileDS('plus', `${padWithQuotes(left)} + ${padWithQuotes(right)}`)
+    ],
+    'minus': [
+      (left, right) => createTranspileDS('minus', `${left} - ${right}`)
+    ],
+    'star': [
+      (left, right) => createTranspileDS('star', `${padWithQuotes(left)} * ${padWithQuotes(right)}`),
+      (left, right) => createTranspileDS('star', `${padWithQuotes(right)}.repeat(${left})`),
+      (left, right) => createTranspileDS('star', `${padWithQuotes(left)}.repeat(${right})`)
+    ],
+    'plus_plus': [
+      (left, right) => createTranspileDS('plus_plus', `[${left.value}].concat([${right.value}])`)
+    ]
+  }
+}
+
+const stmtReducers = {
+  [MODE_INTERPRET]: {
+    'print': [
+      value => value
+    ]
+  },
+  [MODE_TRANSPILE]: {
+    'print': [
+      result => {
+        if (isList(result) && Array.isArray(result.value)) return `console.log([${result.value}]);`
+        if (hasValue(result)) return `console.log(${result.value});`
+        return `console.log(${result});`
+      }
+    ]
+  }
+}
+
 const isIdentifier      = value => value !== null && typeof value === 'object' && 'type' in value && value.type == IDENTIFIER
 const isCallable        = value => typeof value === 'object' && 'call' in value
 const isList            = value => typeof value === 'object' && 'type' in value && value.type == LIST
 const getValue          = (state, value) => isIdentifier(value) ? state[value.literal] : value
+const hasValue          = value => value !== null && typeof value === 'object' && 'value' in value
 const createTypeChecker = type => (value) => typeof value === type
 const isNumber          = createTypeChecker('number')
 const isString          = createTypeChecker('string')
@@ -105,36 +186,36 @@ const binaryOps = {
   },
   [PLUS]: (left, right, state) => {
     if (eitherType(left, isNumber, isString) && eitherType(right, isNumber, isString)) {
-      return left + right
+      return binaryReducers[interpretConfig.mode]['plus'][0](left, right)
     } else if (ofType(isList, left, right)) {
-      return createList(left.value.concat(right.value))
-    } else if (allPairs([[left, isList], [right, isString]])) {
-      
+      // TODO: [1, 2, 3] + 5 => [6, 7, 8]
     } else {
       throw "Sayop nga pag-dugang."
     }
   },
   [PLUS_PLUS]: (left, right, state) => {
     if (ofType(isList, left, right)) {
-      return createList(left.value.concat(right.value))
+      return binaryReducers[interpretConfig.mode]['plus_plus'][0](left, right)
     } else {
       throw "Sayop nga pag-dugang."
     }
   },
   [MINUS]: (left, right, state) => {
     if (ofType(isNumber, left, right)) {
-      return left - right
+      return binaryReducers[interpretConfig.mode]['minus'][0](left, right)
     } else {
       throw "Dire pwede mag-iban dire numero."
     }
   },
   [STAR]: (left, right, state) => {
+    // TODO: [1, 2, 3] * 2 => [2, 4, 6]
+
     if (ofType(isNumber, left, right)) {
-      return left * right
+      return binaryReducers[interpretConfig.mode]['star'][0](left, right)
     } else if (allPairs([[left, isNumber], [right, isString]])) {
-      return right.repeat(left)
+      return binaryReducers[interpretConfig.mode]['star'][1](left, right)
     } else if (allPairs([[left, isString], [right, isNumber]])) {
-      return left.repeat(right)
+      return binaryReducers[interpretConfig.mode]['star'][2](left, right)
     } else {
       throw "Sayop nga pag multiply."
     }
@@ -221,7 +302,7 @@ const binaryOps = {
     } else {
       state[left.literal] = right
     }
-    
+
     return right
   }
 }
@@ -276,7 +357,7 @@ const expressionVisitors = {
     } catch(e) {
       throw `May sayop ka ha linya ${node.value.line}.`
     }
-    
+
   },
   [CALL]: (node, state) => {
     const functionName = node.value.value.literal
@@ -297,7 +378,7 @@ const expressionVisitors = {
     return {type: LIST, value: contents}
   },
   [VARIABLE]: node => node.value,
-  [LITERAL]: node => node.value,
+  [LITERAL]: node => expressionReducers[interpretConfig.mode]['literal'](node),
   [GROUP]: (node, state) => expressionVisitors[node.value.type](node.value, state)
 }
 
@@ -305,6 +386,11 @@ const statementVisitors = {
   [PRINT_STMT]: (statement, state) => {
     // TODO: Create filters for type simplification e.g. {type: LIST, value} to "value"
     const result = expressionVisitors[statement.value.type](statement.value, state)
+
+    if (interpretConfig.mode === MODE_TRANSPILE) {
+      return stmtReducers[MODE_TRANSPILE]['print'][0](result)
+    }
+
     const evaluatedResult = isIdentifier(result) && result.literal in state ? state[result.literal] : isIdentifier(result) ? undefined : result
     const filteredResult = evaluatedResult === null || evaluatedResult === undefined ? "waray" : evaluatedResult === true ? "tuod" : evaluatedResult === false ? "buwa" : evaluatedResult
     const convertedResult = isList(filteredResult) ? filteredResult.value : filteredResult
@@ -354,7 +440,7 @@ const createCallable = (statement, state) => {
         return acc
       }
     }, [])
-    
+
     const argState = evaluatedArgs.reduce((acc, arg, index) => {
       if (!(index in statement.params)) return acc
       return Object.assign({}, acc, {[statement.params[index].literal]: arg})
@@ -368,7 +454,7 @@ const createCallable = (statement, state) => {
         return st.type == RETURN_STMT ? result : typeof result !== 'undefined' && result !== null && result.type == RETURN_STMT ? statementVisitors[result.type](result, fnState) : acc
       } else {
         return acc
-      }        
+      }
     }, null)
   }
 
@@ -379,21 +465,21 @@ const createCallable = (statement, state) => {
   return state[statement.value.literal]
 }
 
-const MODE_INTERPRET = Symbol.for('interpret'),
-      MODE_TRANSPILE = Symbol.for('transpile')
-
-const LANG_WARAY   = Symbol.for('waray'),
-      LANG_TAGALOG = Symbol.for('tagalog')
-
 const interpret = (mode=MODE_INTERPRET, lang=LANG_WARAY) => statements => {
   const state = {}
+  let transpiled = ""
+  interpretConfig = {mode, lang}
 
   try {
     for (statement of statements) {
-      statementVisitors[statement.type](statement, state)
+      if (interpretConfig.mode === MODE_INTERPRET) {
+        statementVisitors[statement.type](statement, state)
+      } else if (interpretConfig.mode === MODE_TRANSPILE) {
+        return statementVisitors[statement.type](statement, state)
+      }
     }
 
-    return 0
+    return interpretConfig.mode === MODE_INTERPRET ? 0 : transpiled
   } catch(e) {
     console.log(e)
     return -1

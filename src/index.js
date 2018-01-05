@@ -11,6 +11,8 @@ const LANG_WARAY   = Symbol.for('waray'),
 
 const run = program => interpret(MODE_INTERPRET, LANG_WARAY)(parse(tokenize(program)))
 
-run(`
+const transpile = program => interpret(MODE_TRANSPILE, LANG_WARAY)(parse(tokenize(program)))
 
-`)
+console.log(transpile(`
+yakan 2 * 2 tapos
+`))
